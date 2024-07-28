@@ -18,8 +18,8 @@ This project is an email automation service using Supabase, Next.js, Inngest, Ge
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/your-repo/email-automation-service.git
-   cd email-automation-service
+   git clone https://github.com/emee-dev/inbox-ai
+   cd inbox-ai
    ```
 
 2. Install the dependencies:
@@ -142,13 +142,10 @@ This project is an email automation service using Supabase, Next.js, Inngest, Ge
 
 ## External Documentation
 
-- [Inngest Documentation](https://www.inngest.com/docs/)
+- [Inngest Documentation](https://www.inngest.com/docs/guides/background-jobs)
 - [Supabase Documentation](https://supabase.io/docs/)
-- [Zoho Mail API Documentation](https://www.zoho.com/mail/help/api/)
-- [Gemini API Documentation](https://docs.gemini.com/)
+- [Zoho Mail OAuth Integration](https://www.zoho.com/mail/help/api/using-oauth-2.html)
+- [Configure Zoho Mail Outbound Webhooks](https://www.zoho.com/mail/help/dev-platform/webhook.html)
+- [Vercel AI SDK](https://sdk.vercel.ai/docs/introduction)
 
-For any issues or contributions, please open an issue or submit a pull request on [GitHub](https://github.com/emee-dev/email-automation-service).
-
-```
-
-```
+For any issues or contributions, please open an issue or submit a pull request on [GitHub](https://github.com/emee-dev/inbox-ai).
