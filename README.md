@@ -1,163 +1,154 @@
-# PXCI Boilerplate
+## README
 
-This is a Next.js starter project featuring:
+# Email Automation Service
 
-- **[Prisma](https://www.prisma.io/docs):** Prisma ORM is an open source Node.js and TypeScript ORM with a readable data model, automated migrations, type-safety, and auto-completion.
-- **[Xata](https://xata.io/docs):** Xata is a serverless data platform, built on PostgreSQL which provides a full-text and vector search engine, record-level file attachments, table-level aggregations and an optional ask endpoint to engage with with OpenAI's ChatGPT API.
-- **[Clerk](https://clerk.com/docs):** Clerk is a User Management Platform, offering a complete suite of embeddable UIs, flexible APIs, and admin dashboards to authenticate and manage your users.
-- **[Inngest](https://www.inngest.com/docs):** Inngest is an event-driven durable execution engine that enables you to run reliable code on any platform, including serverless.
+This project is an email automation service using Supabase, Next.js, Inngest, Gemini API, and Zoho Mail. The service receives incoming emails via Zoho webhooks, processes them using the Gemini API, and performs actions such as labeling emails or tagging them as spam. Inngest is used for handling background jobs, making the system more resilient and asynchronous.
 
-## App overview
+## Table of Contents
 
-![This is a screenshot of a web page with the title "Next.js PXCI starter" visible in the browser tab. The page features an unprotected landing page. Once logged in, you will see a text box titled "Send a message to yourself:" with a "Send" button below it. Below the button, there is a section displaying "Your last message: 'hello'". A user profile icon is visible in the top right corner of the page.](./app-light.png)
+- [Email Automation Service](#email-automation-service)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Supabase Table Setup](#supabase-table-setup)
+  - [Running the Project](#running-the-project)
+  - [External Documentation](#external-documentation)
 
-How the app works:
+## Installation
 
-- The app features sign in/sign out functionality using Clerk and the avatar of the currently logged user is shown in the top-right corner
-- A Clerk protected dashboard route, leading to the messaging UI after successful authentication
-- User's messages are sent to/read from Xata using Prisma ORM
-- Finally, an Inngest function is responsible for reliably generating an answer to the user's message using OpenAI
+1. Clone the repository:
 
-## Resources Get Started
+   ```sh
+   git clone https://github.com/your-repo/email-automation-service.git
+   cd email-automation-service
+   ```
 
-- [Get started with Next.js and Xata](https://xata.io/docs/getting-started/nextjs)
-- [Using Prisma with Xata's Postgres service](https://xata.io/blog/prisma-postgres-xata-integration)
-- [Setting up your Clerk account](https://clerk.com/docs/quickstarts/setup-clerk)
-- [Clerk Next.js Quick Start](https://clerk.com/docs/quickstarts/nextjs)
-- [Inngest Quick Start](https://www.inngest.com/docs/quick-start)
+2. Install the dependencies:
 
-## Using this boilerplate
+   ```sh
+   pnpm install
+   ```
 
-This boilerplate was created using [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app), has Prisma already set up (see [`./prisma`](./prisma)), as well as Inngest (see [`./inngest`](./inngest) and [`./api/inngest`](./api/inngest)).
+3. Create a `.env.local` file in the root of the project and add the following environment variables:
 
-While Inngest requires an account for production, using [Inngest Dev Server](https://www.inngest.com/docs/local-development) for local development is free and doesn't require any setup.
+   ```env
+   # .env.local
+   INNGEST_DEV=1
+   INNGEST_API_KEY=""
 
-The following steps will guide you through setting up your Xata and Clerk accounts.
+   NEXT_PUBLIC_URL=""
 
-### 1. Xata database setup
+   # https://api-console.zoho.com
+   NEXT_PUBLIC_ZOHO_CLIENT_ID=""
+   NEXT_PUBLIC_ZOHO_OAUTH_SCOPE="ZohoMail.messages.ALL,ZohoMail.accounts.ALL"
+   NEXT_PUBLIC_ZOHO_REDIRECT_URL=""
+   ZOHO_CLIENT_SECRET=""
 
-#### Install Xata CLI
+   # Supabase credentials
+   NEXT_PUBLIC_SUPABASE_URL=""
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=""
 
-```bash
-npm install -g @xata.io/cli
+   # Gemini Api
+   # https://ai.google.dev/
+   GOOGLE_GENERATIVE_AI_API_KEY=""
+
+   ```
+
+## Supabase Table Setup
+
+1. Log in to your [Supabase](https://supabase.io) account and navigate to your project.
+
+2. Create the following tables:
+
+- **Users**
+
+  ```sql
+  create table
+  users (
+  id uuid not null default gen_random_uuid (),
+  email character varying(255) null,
+  password_hash character varying(255) not null,
+  created_at timestamp without time zone null default current_timestamp,
+  firstname character varying null,
+  lastname character varying null,
+  primaryemailaddress character varying null,
+  zoho_zuid bigint null,
+  accountid character varying null,
+  constraint users_pkey primary key (id),
+  constraint users_email_key unique (email)
+  ) tablespace pg_default;
+  ```
+
+- **User_tokens**
+
+  ```sql
+  create table
+  user_tokens (
+  id serial,
+  user_id uuid not null,
+  access_token text not null,
+  refresh_token text not null,
+  expires_at timestamp with time zone not null,
+  created_at timestamp with time zone null default current_timestamp,
+  updated_at timestamp with time zone null default current_timestamp,
+  constraint user_tokens_pkey primary key (id),
+  constraint fk_user foreign key (user_id) references users (id) on delete cascade
+  ) tablespace pg_default;
+
+  create index if not exists idx_user_id on public.user_tokens using btree (user_id) tablespace pg_default;
+  ```
+
+- **Prompts**
+
+  ```sql
+  create table
+  prompts (
+    id uuid not null default gen_random_uuid (),
+    user_id uuid null,
+    prompt_text text not null,
+    label character varying(255) null,
+    created_at timestamp without time zone null default current_timestamp,
+    prompt_extra_info text null,
+    constraint prompts_pkey primary key (id),
+    constraint prompts_user_id_fkey foreign key (user_id) references users (id) on delete cascade
+  ) tablespace pg_default;
+  ```
+
+- **Logs**
+  ```sql
+  create table
+  automation_history (
+    id uuid not null default gen_random_uuid (),
+    user_id uuid null,
+    prompt_id uuid null,
+    email_subject character varying(255) null,
+    email_body text null,
+    action_performed character varying(255) null,
+    created_at timestamp without time zone null default current_timestamp,
+    constraint automation_history_pkey primary key (id),
+    constraint automation_history_prompt_id_fkey foreign key (prompt_id) references prompts (id) on delete set null,
+    constraint automation_history_user_id_fkey foreign key (user_id) references users (id) on delete cascade
+  ) tablespace pg_default;
+  ```
+
+## Running the Project
+
+1. Start the development server:
+
+   ```sh
+   pnpm dev
+   ```
+
+2. Your application should now be running on `http://localhost:3000`.
+
+## External Documentation
+
+- [Inngest Documentation](https://www.inngest.com/docs/)
+- [Supabase Documentation](https://supabase.io/docs/)
+- [Zoho Mail API Documentation](https://www.zoho.com/mail/help/api/)
+- [Gemini API Documentation](https://docs.gemini.com/)
+
+For any issues or contributions, please open an issue or submit a pull request on [GitHub](https://github.com/emee-dev/email-automation-service).
+
 ```
 
-#### Authenticate with Xata
-
-```bash
-xata auth login
 ```
-
-Next:
-
-1. Choose Create new API key in the browser.
-2. Create account or sign in in the browser.
-3. Create a new API key.
-
-#### Create a new Xata database with direct Postgres access
-
-1. Go to the [Xata dashboard](https://app.xata.io/).
-2. Create a new database, choosing the **Enable direct access to Postgres** option.
-3. Once you've created the database, click the "Generate new API key" button in the database settings screen.
-
-You will be now be able to see your Xata database connection string, with the pre-populated API key, which looks like this:
-
-```
-postgresql://<YOUR_WORKSPACE_ID>:<YOUR_API_KEY>@<YOUR_REGION>.sql.xata.sh:5432/<YOUR_DATABASE_NAME>:<YOUR_BRANCH_NAME>
-```
-
-<!-- REWORD -->
-
-Back in your code editor, in your project's root create a new file called `.env`. Using the value from the previous step, add a new environment variable called `DATABASE_URL`, like this:
-
-```conf
-DATABASE_URL=postgresql://...?sslmode=require
-```
-
-You can also see an example of the `.env` file in [`./.env.example`](./.env.example).
-
-#### Create another Xata database to be used for Prisma Migrations
-
-Migrations with Prisma require a [shadow database](https://www.prisma.io/docs/orm/prisma-migrate/understanding-prisma-migrate/shadow-database). For this purpose, you'll need to create an additional database in Xata.
-
-Repeat the previous step's instructions to create a new database. Name it something like `<YOUR_APP_NAME>-migrations`.
-
-This time you'll need to populate the API key in the connection string by hand. You can use the same API key as for the main database connection.
-
-Once done, configure the database connection string in your `.env` file as `SHADOW_DATABASE_URL`:
-
-```conf
-SHADOW_DATABASE_URL=postgresql://...?sslmode=require
-```
-
-#### Initialize database schema
-
-Run the initial Prisma migration to create the database schema.
-
-```bash
-npx prisma db push
-```
-
-### 2. Clerk
-
-#### Create a new application in Clerk
-
-Sign up or sign in to [Clerk](https://dashboard.clerk.com/) and create a new application.
-
-Choose any login mechanisms you'd like to allow your users to sign in with. You can change these later.
-
-Once the application is created, see the section called "Set your environment variables" and copy the generated environment variables and add them to your `.env` file
-
-```conf
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_abcdefghijklmnopqrstuvwxyz
-CLERK_SECRET_KEY=••••••••••••••••••••••••••••••••••••••••••••••••••
-```
-
-You'll also need to add one more variable to let Clerk know where to redirect on successful login
-
-```conf
-NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/dashboard
-```
-
-You can skip the other suggested steps in the Clerk setup, they've already been included in this boilerplate.
-
-## Running the app
-
-You will use two Dev Servers.
-
-### Next.js Dev Server
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see your app.
-
-### Inngest Dev Server
-
-```bash
-npx inngest-cli dev
-```
-
-Open [http://localhost:8288](http://localhost:8288) with your browser to see the Inngest UI.
-
-## Helpful Resources
-
-- Blog post: [AI in production: Managing capacity with flow control](https://inngest.com/blog/ai-in-production-managing-capacity-with-flow-control)
-- Video: [Automate All of Your Customer Emails with AI in Next.js](https://www.youtube.com/watch?v=EoFI_Bmzb4g)
-- Blog post: [Semi-Autonomous AI Agents and Collaborative Multiplayer Asynchronous Workflows](https://inngest.com/blog/semi-autonomous-ai-agents)
-- Docs: Inngest for AI
-  - [Concurrency](https://inngest.com/docs/concurrency) - Concurrency controls the number of steps executing code at any one time. It works by creating multi-level virtual queues within each function, directly in code, without thinking about infrastructure.
-  - [Debouncing](https://inngest.com/docs/guides/debounce) - Debounce delays function execution until a series of events are no longer received. This is useful for preventing wasted work when a function might be triggered in quick succession.
-  - [Prioritization](https://inngest.com/docs/guides/priority) - Priority allows you to dynamically execute some runs ahead or behind others based on any data. This allows you to prioritize some jobs ahead of others without the need for a separate queue.
-  - [Rate limiting](https://inngest.com/docs/guides/rate-limiting) - Rate limiting is a hard limit on how many function runs can start within a time period. Events that exceed the rate limit are skipped and do not trigger functions to start. This prevents excessive function runs over a given time period.
-  - [Steps](https://www.inngest.com/docs/learn/inngest-steps) - Steps are fundamental building blocks in Inngest functions. Each step represents individual task (or other unit of work) within a function that can be executed independently.
-  - [Throttling](https://inngest.com/docs/guides/throttling) - Throttling allows you to specify how many function runs can start within a time period. When the limit is reached, new function runs over the throttling limit will be enqueued for the future.
-- Docs: [Prisma ORM](https://www.prisma.io/docs/orm)
-- Resource: [Clerk Hackathon resources](https://www.notion.so/clerkdev/Clerk-Hackathon-Resources-1993bf4a3b3841fb91b01b209b9258d1)

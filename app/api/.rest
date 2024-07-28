@@ -1,0 +1,25 @@
+### Zoho mail webhook endpoint
+POST http://localhost:3000/api/webhooks/zohomail
+Content-Type: application/json
+
+{
+    "mail": "321"
+}
+
+### Zoho mail webhook endpoint
+POST https://xxzbrx9p-3000.uks1.devtunnels.ms/api/webhooks/zohomail
+Content-Type: application/json
+
+{
+    "mail": "321"
+}
+
+
+### Oauth
+POST http://localhost:3000/api/webhooks/oauth?code=123
+Content-Type: application/json
+
+
+### Testing fs promises
+GET http://localhost:3000/api
+Content-Type: application/json
