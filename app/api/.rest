@@ -28,3 +28,4 @@ Content-Type: application/json
 ### Return cookies
 POST http://localhost:3000/api/auth
 Content-Type: application/json
+Cookie: 'sessionId=yourSessionId; otherCookie=otherValue'

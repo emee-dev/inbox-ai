@@ -43,14 +43,14 @@ type ActionTypeOfArchive = Pick<Action, "type"> & {
 };
 type ActionTypeOfSendEmail = Pick<Action, "type"> & {
   toAddress: string;
-  ccAddress?: string;
-  bccAddress?: string;
+  ccAddress?: string | null;
+  bccAddress?: string | null;
   subject: string;
   content: string;
 };
 type ActionTypeOfReplyEmail = Pick<Action, "type"> & {
-  ccAddress?: string;
-  bccAddress?: string;
+  ccAddress?: string | null;
+  bccAddress?: string | null;
   subject: string;
   content: string;
 };
@@ -85,19 +85,17 @@ const CreateAction = (props: any) => {
   const sendEmailcontentRef = useRef<HTMLTextAreaElement>(null);
 
   const replyEmailsubjectRef = useRef<HTMLInputElement>(null);
-  const replyEmailtoAddressRef = useRef<HTMLInputElement>(null);
+  //   const replyEmailtoAddressRef = useRef<HTMLInputElement>(null);
   const replyEmailccAddressRef = useRef<HTMLInputElement>(null);
   const replyEmailbccAddressRef = useRef<HTMLInputElement>(null);
   const replyEmailcontentRef = useRef<HTMLTextAreaElement>(null);
-
-  //   const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     let formhandle = new FormData(formRef.current!);
 
-    let label = formhandle.get("rule");
+    let label = formhandle.get("label");
     let prompt_text = formhandle.get("instruction");
 
     let spamValue: ActionTypeOfSpam = {
@@ -112,19 +110,19 @@ const CreateAction = (props: any) => {
 
     let sendEmailValue: ActionTypeOfSendEmail = {
       type: "archive",
-      content: sendEmailbccAddressRef.current!?.value,
+      content: sendEmailcontentRef.current!?.value,
       subject: sendEmailsubjectRef.current!?.value,
       bccAddress: sendEmailbccAddressRef.current!?.value,
-      toAddress: sendEmailbccAddressRef.current!?.value,
-      ccAddress: sendEmailbccAddressRef.current!?.value,
+      toAddress: sendEmailtoAddressRef.current!?.value,
+      ccAddress: sendEmailccAddressRef.current!?.value,
     };
 
     let replyEmailValue: ActionTypeOfReplyEmail = {
       type: "reply-email",
-      content: replyEmailsubjectRef.current!?.value,
+      content: replyEmailcontentRef.current!?.value,
       subject: replyEmailsubjectRef.current!?.value,
-      bccAddress: replyEmailsubjectRef.current!?.value,
-      ccAddress: replyEmailsubjectRef.current!?.value,
+      bccAddress: replyEmailbccAddressRef.current!?.value || null,
+      ccAddress: replyEmailccAddressRef.current!?.value || null,
     };
 
     let prompt_extra_info = stringifyAction(
@@ -173,10 +171,15 @@ const CreateAction = (props: any) => {
       onSubmit={(e) => handleSubmit(e)}
     >
       <div className="grid w-full  items-center gap-1.5">
-        <Label htmlFor="rule" className="font-semibold text-lg">
+        <Label htmlFor="label" className="font-semibold text-lg">
           Rule name
         </Label>
-        <Input type="text" id="rule" placeholder="label your rule" />
+        <Input
+          type="text"
+          id="label"
+          name="label"
+          placeholder="label your rule"
+        />
       </div>
 
       <div className="mt-5">
@@ -255,6 +258,7 @@ const CreateAction = (props: any) => {
                     <Input
                       type="text"
                       id="send-email-subject"
+                      name="send-email-subject"
                       ref={sendEmailsubjectRef}
                       placeholder="Enter your label"
                     />
@@ -264,6 +268,7 @@ const CreateAction = (props: any) => {
                     <Input
                       type="text"
                       id="email-email-to"
+                      name="email-email-to"
                       ref={sendEmailtoAddressRef}
                       placeholder="Email address of Recipient"
                     />
@@ -273,6 +278,7 @@ const CreateAction = (props: any) => {
                     <Input
                       type="text"
                       id="send-email-cc"
+                      name="send-email-cc"
                       ref={sendEmailccAddressRef}
                       placeholder="Email address of CC"
                     />
@@ -282,16 +288,17 @@ const CreateAction = (props: any) => {
                     <Input
                       type="text"
                       id="send-email-bcc"
+                      name="send-email-bcc"
                       ref={sendEmailbccAddressRef}
                       placeholder="Email address of BCC"
                     />
                   </div>
                   <div className="grid flex-1 items-center gap-1.5">
-                    <Label htmlFor="label">Content</Label>
+                    <Label htmlFor="send-email-content">Content</Label>
                     <Textarea
                       placeholder="Type your message here."
-                      name="instruction"
-                      id="instruction"
+                      id="send-email-content"
+                      name="send-email-content"
                       ref={sendEmailcontentRef}
                     />
                   </div>
@@ -301,47 +308,51 @@ const CreateAction = (props: any) => {
               {action === "reply-email" && (
                 <div className="flex flex-col flex-1 gap-y-4">
                   <div className="grid flex-1 items-center gap-1.5">
-                    <Label htmlFor="label">Subject</Label>
+                    <Label htmlFor="reply-email-subject">Subject</Label>
                     <Input
                       type="text"
-                      id="label"
+                      id="reply-email-subject"
+                      name="reply-email-subject"
                       ref={replyEmailsubjectRef}
-                      placeholder="Enter your label"
+                      placeholder="Enter email subject"
                     />
                   </div>
-                  <div className="grid flex-1 items-center gap-1.5">
-                    <Label htmlFor="label">To</Label>
+                  {/* <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="reply-email-to">To</Label>
                     <Input
                       type="text"
-                      id="label"
+                      id="reply-email-to"
+                      name="reply-email-to"
                       ref={replyEmailtoAddressRef}
                       placeholder="Enter your label"
                     />
-                  </div>
+                  </div> */}
                   <div className="grid flex-1 items-center gap-1.5">
-                    <Label htmlFor="label">CC</Label>
+                    <Label htmlFor="reply-email-cc">CC</Label>
                     <Input
                       type="text"
-                      id="label"
+                      id="reply-email-cc"
+                      name="reply-email-cc"
                       ref={replyEmailccAddressRef}
                       placeholder="Enter your label"
                     />
                   </div>
                   <div className="grid flex-1 items-center gap-1.5">
-                    <Label htmlFor="label">BCC</Label>
+                    <Label htmlFor="reply-email-bcc">BCC</Label>
                     <Input
                       type="text"
-                      id="label"
+                      id="reply-email-bcc"
+                      name="reply-email-bcc"
                       ref={replyEmailbccAddressRef}
                       placeholder="Enter your label"
                     />
                   </div>
                   <div className="grid flex-1 items-center gap-1.5">
-                    <Label htmlFor="label">Content</Label>
+                    <Label htmlFor="reply-email-content">Content</Label>
                     <Textarea
                       placeholder="Type your message here."
-                      name="instruction"
-                      id="instruction"
+                      id="reply-email-content"
+                      name="reply-email-content"
                       ref={replyEmailcontentRef}
                     />
                   </div>
@@ -382,8 +393,7 @@ function stringifyAction(
       content: replyEmailValue?.content,
       subject: replyEmailValue?.subject,
       bccAddress: replyEmailValue?.bccAddress,
-      toAddress: replyEmailValue?.toAddress,
-      ccAddress: replyEmailValue?.ccAddress,
+      ccAddress: replyEmailValue?.ccAddress!,
     } as ActionTypeOfReplyEmail);
   } else if (action_type === "send-email") {
     return JSON.stringify({

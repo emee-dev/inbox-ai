@@ -46,19 +46,35 @@ function Dashboard(props: Props) {
   const [prompts, setPromps] = useState<Prompts[]>([]);
   const router = useRouter();
 
-
   const getUser = async () => {
-    let req = await fetch("/")
-  }
+    try {
+      let req = await fetch("/api/auth", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-  // useEffect(() => {
-  //   if (!props.searchParams.email) {
-  //     router.push("/login");
-  //     return;
-  //   } else {
-  //     setEmail(email);
-  //   }
-  // }, []);
+      if (!req.ok) {
+        return;
+      }
+
+      let res = await req.json();
+
+      if (!props.searchParams.email) {
+        router.push("/login");
+      } else {
+        setEmail(email);
+      }
+    } catch (error: any) {
+      console.warn(error.message);
+    }
+  };
+
+  useEffect(() => {
+    getUser();
+  }, []);
 
   const fetchPrompts = async () => {
     let { data, count, error } = await supabase.from("prompts").select("*");

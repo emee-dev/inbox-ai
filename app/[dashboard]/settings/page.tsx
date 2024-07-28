@@ -22,7 +22,7 @@ type Prompts = {
 };
 
 function Dashboard() {
-  const supabase = createClient();
+  // const supabase = createClient();
 
   useEffect(() => {}, []);
 

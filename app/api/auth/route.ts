@@ -1,20 +1,23 @@
 import { cookies } from "next/headers";
 
 export const POST = async (req: Request) => {
-  let cookie = cookies();
-  let sid = cookie.get("sid");
+  let req_cookie = req.headers.getSetCookie();
 
-  console.log("sid", sid);
+  console.log("req_cookie", req_cookie);
 
-  if (!sid) {
-    cookie.set(
-      "sid",
-      JSON.stringify({
-        email: "emee-dev@gmail.com",
-      })
-    );
-  }
-  
+  //   let cookie = cookies();
+  //   let sid = cookie.get("sid");
+
+  //   console.log("sid", sid);
+
+  //   if (!sid) {
+  //     cookie.set(
+  //       "sid",
+  //       JSON.stringify({
+  //         email: "emee-dev@gmail.com",
+  //       })
+  //     );
+  //   }
 
   return Response.json({ message: "Cookies" });
 };
