@@ -139,9 +139,22 @@ export async function GET(req: Request) {
       );
     }
 
-    return NextResponse.redirect(
-      new URL(`${frontend}/dashboard?email=${allAccounts.mailboxAddress}`)
+    const redirect = NextResponse.redirect(
+      new URL(`${frontend}/dashboard?email=${allAccounts.mailboxAddress}`),
+      { status: 302 }
     );
+
+    let cookie = {
+      email: allAccounts.mailboxAddress,
+    };
+
+    redirect.cookies.set("sid", JSON.stringify(cookie), {
+      // path: "/",
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+    });
+
+    return redirect;
   } catch (error: any) {
     let err = handleAxiosError(error);
 

@@ -12,8 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { clientId, redirectUri, scope } from "../api/webhooks/oauth/controller";
 import { useRouter } from "next/navigation";
+import useUserStore from "@/store";
 
 function LoginForm() {
+  // const { email, setEmail } = useUserStore();
   const router = useRouter();
 
   const handleSubmit = (e: any) => {

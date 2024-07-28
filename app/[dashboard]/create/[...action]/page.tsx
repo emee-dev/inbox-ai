@@ -26,15 +26,33 @@ import { CircleHelp } from "lucide-react";
 import { useRef, useState } from "react";
 
 type Action = {
-  type: "label" | "spam";
+  type: "archive" | "spam" | "send-email" | "reply-email";
   args: string;
 };
 
-type ActionTypeOfLabel = Pick<Action, "type"> & {
-  label_text: string;
-};
+// type ActionTypeOfLabel = Pick<Action, "type"> & {
+//   label_text: string;
+// };
+
 type ActionTypeOfSpam = Pick<Action, "type"> & {
   mark_as_spam: boolean;
+};
+
+type ActionTypeOfArchive = Pick<Action, "type"> & {
+  archive_email: boolean;
+};
+type ActionTypeOfSendEmail = Pick<Action, "type"> & {
+  toAddress: string;
+  ccAddress?: string;
+  bccAddress?: string;
+  subject: string;
+  content: string;
+};
+type ActionTypeOfReplyEmail = Pick<Action, "type"> & {
+  ccAddress?: string;
+  bccAddress?: string;
+  subject: string;
+  content: string;
 };
 
 type User = {
@@ -51,7 +69,7 @@ type User = {
 
 const CreateAction = (props: any) => {
   console.log("props", props);
-  const [action, setAction] = useState<Action["type"]>("label");
+  const [action, setAction] = useState<Action["type"]>("send-email");
   const supabase = createClient();
 
   let user = "john.doe@example.com";
@@ -59,6 +77,20 @@ const CreateAction = (props: any) => {
   const labelRef = useRef<HTMLInputElement>(null);
   const spamRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const sendEmailsubjectRef = useRef<HTMLInputElement>(null);
+  const sendEmailtoAddressRef = useRef<HTMLInputElement>(null);
+  const sendEmailccAddressRef = useRef<HTMLInputElement>(null);
+  const sendEmailbccAddressRef = useRef<HTMLInputElement>(null);
+  const sendEmailcontentRef = useRef<HTMLTextAreaElement>(null);
+
+  const replyEmailsubjectRef = useRef<HTMLInputElement>(null);
+  const replyEmailtoAddressRef = useRef<HTMLInputElement>(null);
+  const replyEmailccAddressRef = useRef<HTMLInputElement>(null);
+  const replyEmailbccAddressRef = useRef<HTMLInputElement>(null);
+  const replyEmailcontentRef = useRef<HTMLTextAreaElement>(null);
+
+  //   const formRef = useRef<HTMLFormElement>(null);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -68,17 +100,40 @@ const CreateAction = (props: any) => {
     let label = formhandle.get("rule");
     let prompt_text = formhandle.get("instruction");
 
-    let labelValue: ActionTypeOfLabel = {
-      type: "label",
-      label_text: labelRef.current!?.value,
-    };
-
     let spamValue: ActionTypeOfSpam = {
       type: "spam",
       mark_as_spam: spamRef.current!?.checked,
     };
 
-    let prompt_extra_info = stringifyAction(action, labelValue, spamValue);
+    let archiveValue: ActionTypeOfArchive = {
+      type: "archive",
+      archive_email: spamRef.current!?.checked,
+    };
+
+    let sendEmailValue: ActionTypeOfSendEmail = {
+      type: "archive",
+      content: sendEmailbccAddressRef.current!?.value,
+      subject: sendEmailsubjectRef.current!?.value,
+      bccAddress: sendEmailbccAddressRef.current!?.value,
+      toAddress: sendEmailbccAddressRef.current!?.value,
+      ccAddress: sendEmailbccAddressRef.current!?.value,
+    };
+
+    let replyEmailValue: ActionTypeOfReplyEmail = {
+      type: "reply-email",
+      content: replyEmailsubjectRef.current!?.value,
+      subject: replyEmailsubjectRef.current!?.value,
+      bccAddress: replyEmailsubjectRef.current!?.value,
+      ccAddress: replyEmailsubjectRef.current!?.value,
+    };
+
+    let prompt_extra_info = stringifyAction(
+      action,
+      archiveValue,
+      spamValue,
+      replyEmailValue,
+      sendEmailValue
+    );
 
     // console.log({ label, prompt_text, prompt_extra_info });
 
@@ -148,40 +203,38 @@ const CreateAction = (props: any) => {
         <div>
           <Label className="font-semibold text-lg mb-4">Actions</Label>
           <Card>
-            <CardContent className="flex items-center gap-3 pt-5">
-              <div className="gap-1.5 flex flex-col justify-center">
+            <CardContent className="flex gap-3 pt-5">
+              <div className="gap-1.5 flex flex-col">
                 <Label htmlFor="message">Action type</Label>
                 <Select
-                  defaultValue="label"
+                  defaultValue="send-email"
                   onValueChange={(value) => setAction(value as any)}
                 >
                   <SelectTrigger className="w-[170px]">
                     <SelectValue placeholder="Select an action" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="label">Label</SelectItem>
+                    <SelectItem value="archive">Archive email</SelectItem>
                     <SelectItem value="spam">Mark as spam</SelectItem>
-                    <SelectItem value="email" disabled>
-                      Send Email
-                    </SelectItem>
-                    <SelectItem value="reply" disabled>
-                      Send Reply
-                    </SelectItem>
+                    <SelectItem value="send-email">Send Email</SelectItem>
+                    <SelectItem value="reply-email">Send Reply</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {action === "label" && (
-                <div className="grid flex-1 items-center gap-1.5">
+              {action === "archive" && (
+                <div className="hidden flex-1 items-center gap-1.5">
                   <Label htmlFor="label">Label</Label>
                   <Input
-                    type="text"
-                    id="label"
-                    ref={labelRef}
-                    placeholder="Enter your label"
+                    type="checkbox"
+                    id="archive"
+                    checked
+                    readOnly
+                    ref={spamRef}
                   />
                 </div>
               )}
+
               {action === "spam" && (
                 <div className="hidden flex-1 items-center gap-1.5">
                   <Label htmlFor="label">Label</Label>
@@ -192,6 +245,106 @@ const CreateAction = (props: any) => {
                     readOnly
                     ref={spamRef}
                   />
+                </div>
+              )}
+
+              {action === "send-email" && (
+                <div className="flex flex-col flex-1 gap-y-4">
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="send-email-subject">Subject</Label>
+                    <Input
+                      type="text"
+                      id="send-email-subject"
+                      ref={sendEmailsubjectRef}
+                      placeholder="Enter your label"
+                    />
+                  </div>
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="email-email-to">To</Label>
+                    <Input
+                      type="text"
+                      id="email-email-to"
+                      ref={sendEmailtoAddressRef}
+                      placeholder="Email address of Recipient"
+                    />
+                  </div>
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="send-email-cc">CC</Label>
+                    <Input
+                      type="text"
+                      id="send-email-cc"
+                      ref={sendEmailccAddressRef}
+                      placeholder="Email address of CC"
+                    />
+                  </div>
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="send-email-bcc">BCC</Label>
+                    <Input
+                      type="text"
+                      id="send-email-bcc"
+                      ref={sendEmailbccAddressRef}
+                      placeholder="Email address of BCC"
+                    />
+                  </div>
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="label">Content</Label>
+                    <Textarea
+                      placeholder="Type your message here."
+                      name="instruction"
+                      id="instruction"
+                      ref={sendEmailcontentRef}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {action === "reply-email" && (
+                <div className="flex flex-col flex-1 gap-y-4">
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="label">Subject</Label>
+                    <Input
+                      type="text"
+                      id="label"
+                      ref={replyEmailsubjectRef}
+                      placeholder="Enter your label"
+                    />
+                  </div>
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="label">To</Label>
+                    <Input
+                      type="text"
+                      id="label"
+                      ref={replyEmailtoAddressRef}
+                      placeholder="Enter your label"
+                    />
+                  </div>
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="label">CC</Label>
+                    <Input
+                      type="text"
+                      id="label"
+                      ref={replyEmailccAddressRef}
+                      placeholder="Enter your label"
+                    />
+                  </div>
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="label">BCC</Label>
+                    <Input
+                      type="text"
+                      id="label"
+                      ref={replyEmailbccAddressRef}
+                      placeholder="Enter your label"
+                    />
+                  </div>
+                  <div className="grid flex-1 items-center gap-1.5">
+                    <Label htmlFor="label">Content</Label>
+                    <Textarea
+                      placeholder="Type your message here."
+                      name="instruction"
+                      id="instruction"
+                      ref={replyEmailcontentRef}
+                    />
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -208,19 +361,39 @@ const CreateAction = (props: any) => {
 
 function stringifyAction(
   action_type: Action["type"],
-  labelValue?: ActionTypeOfLabel,
-  spamValue?: ActionTypeOfSpam
+  archiveValue?: ActionTypeOfArchive,
+  spamValue?: ActionTypeOfSpam,
+  replyEmailValue?: ActionTypeOfReplyEmail,
+  sendEmailValue?: ActionTypeOfSendEmail
 ) {
-  if (action_type == "label") {
+  if (action_type == "archive") {
     return JSON.stringify({
       type: action_type,
-      label_text: labelValue?.label_text,
-    } as ActionTypeOfLabel);
+      archive_email: archiveValue?.archive_email,
+    } as ActionTypeOfArchive);
   } else if (action_type === "spam") {
     return JSON.stringify({
       type: action_type,
       mark_as_spam: spamValue?.mark_as_spam,
     } as ActionTypeOfSpam);
+  } else if (action_type === "reply-email") {
+    return JSON.stringify({
+      type: action_type,
+      content: replyEmailValue?.content,
+      subject: replyEmailValue?.subject,
+      bccAddress: replyEmailValue?.bccAddress,
+      toAddress: replyEmailValue?.toAddress,
+      ccAddress: replyEmailValue?.ccAddress,
+    } as ActionTypeOfReplyEmail);
+  } else if (action_type === "send-email") {
+    return JSON.stringify({
+      type: action_type,
+      content: sendEmailValue?.content,
+      subject: sendEmailValue?.subject,
+      bccAddress: sendEmailValue?.bccAddress,
+      toAddress: sendEmailValue?.toAddress,
+      ccAddress: sendEmailValue?.ccAddress,
+    } as ActionTypeOfSendEmail);
   }
 }
 

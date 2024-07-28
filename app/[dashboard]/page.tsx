@@ -26,6 +26,7 @@ import {
 import { createClient } from "@/utils/supabase/client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import useUserStore from "@/store";
 
 type Prompts = {
   label: string;
@@ -39,16 +40,25 @@ type Props = {
 };
 
 function Dashboard(props: Props) {
+  const { email, setEmail } = useUserStore();
+
   const supabase = createClient();
   const [prompts, setPromps] = useState<Prompts[]>([]);
   const router = useRouter();
 
-  useEffect(() => {
-    if (!props.searchParams.email) {
-      router.push("/login");
-      return;
-    }
-  }, []);
+
+  const getUser = async () => {
+    let req = await fetch("/")
+  }
+
+  // useEffect(() => {
+  //   if (!props.searchParams.email) {
+  //     router.push("/login");
+  //     return;
+  //   } else {
+  //     setEmail(email);
+  //   }
+  // }, []);
 
   const fetchPrompts = async () => {
     let { data, count, error } = await supabase.from("prompts").select("*");

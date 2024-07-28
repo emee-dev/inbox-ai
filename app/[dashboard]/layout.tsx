@@ -12,11 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-type Props = {
-  params: {};
-  searchParams: { email: string | undefined };
-};
-
 export default function DashboardLayout({
   children,
 }: Readonly<{

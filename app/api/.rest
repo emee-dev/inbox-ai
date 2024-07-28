@@ -23,3 +23,8 @@ Content-Type: application/json
 ### Testing fs promises
 GET http://localhost:3000/api
 Content-Type: application/json
+
+
+### Return cookies
+POST http://localhost:3000/api/auth
+Content-Type: application/json

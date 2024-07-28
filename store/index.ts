@@ -16,3 +16,5 @@ const useUserStore = create<UserState>((set) => ({
     set({ email });
   },
 }));
+
+export default useUserStore;

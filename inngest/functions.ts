@@ -273,8 +273,16 @@ export const AIHandler = inngest.createFunction(
                   .string()
                   .describe("Email address of the sender."),
                 toAddress: z.string().describe("Email address of reciepient."),
-                ccAddress: z.string().describe("ccAddress for the email"),
-                bccAddress: z.string().describe("bccAddress for the email"),
+                ccAddress: z
+                  .string()
+                  .describe("ccAddress for the email, can be null")
+                  .nullable()
+                  .optional(),
+                bccAddress: z
+                  .string()
+                  .describe("bccAddress for the email, can be null")
+                  .nullable()
+                  .optional(),
                 subject: z
                   .string()
                   .describe("the subject of the email to send"),
@@ -313,9 +321,19 @@ export const AIHandler = inngest.createFunction(
                 fromAddress: z
                   .string()
                   .describe("Email address of the sender."),
-                toAddress: z.string().describe("Email address of reciepient."),
-                ccAddress: z.string().describe("ccAddress for the email"),
-                bccAddress: z.string().describe("bccAddress for the email"),
+                toAddress: z
+                  .string()
+                  .describe("Email address of reciepient.")
+                  .nullable()
+                  .optional(),
+                ccAddress: z
+                  .string()
+                  .describe("ccAddress for the email, can be null")
+                  .nullable()
+                  .optional(),
+                bccAddress: z
+                  .string()
+                  .describe("bccAddress for the email, can be null"),
                 subject: z
                   .string()
                   .describe("the subject of the email to send"),
