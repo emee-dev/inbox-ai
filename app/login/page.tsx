@@ -42,12 +42,12 @@ function LoginForm() {
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Authorize Inbox AI to make changes to your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-4" onSubmit={(e) => handleSubmit(e)}>
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -56,7 +56,7 @@ function LoginForm() {
                 autoComplete="off"
                 // required
               />
-            </div>
+            </div> */}
 
             <Button type="submit" className="w-full">
               Link Zoho Account

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { inngest } from "./client";
 import {
   archiveMessage,
+  extractEmail,
   markAsSpam,
   refreshAccessToken,
   replyToEmail,
@@ -37,26 +38,12 @@ export const AIHandler = inngest.createFunction(
   { id: "on-new-emails" },
   { event: "app/email.recieved" },
   async ({ event, step }) => {
-    let { email, user }: { email: ZohoWebhookEmail; user: string } = event.data;
+    let { email }: { email: ZohoWebhookEmail } = event.data;
 
     const supabase = createClient();
 
     let getUser = await step
       .run("get-user-from-db", async () => {
-        // let resData = {
-        //   id: "b1a72a0d-18d6-4c8d-b27d-5f95c2b1d5c6",
-        //   email: "john.doe@example.com",
-        //   prompts: [
-        //     {
-        //       id: "e7b7cfd3-8a35-4f8c-9a36-9e5d7350e0bb",
-        //       label: "Important Emails",
-        //       user_id: "b1a72a0d-18d6-4c8d-b27d-5f95c2b1d5c6",
-        //       created_at: "2024-07-25T12:10:00",
-        //       prompt_text: 'Label all emails from "example.com" as important',
-        //     },
-        //   ],
-        // };
-
         let { data, error, status } = await supabase
           .from("users")
           .select(
@@ -68,7 +55,7 @@ export const AIHandler = inngest.createFunction(
           user_tokens (*)
         `
           )
-          .eq("email", email)
+          .eq("email", extractEmail(email.toAddress))
           .maybeSingle();
 
         if (error) {
@@ -79,7 +66,7 @@ export const AIHandler = inngest.createFunction(
 
         if (!data) {
           let error = new Error("Could not find user");
-          error.name = "SupabaseUserDataNotFound";
+          error.name = "SupabaseUserDataNotFoundError";
           throw error;
         }
 
@@ -92,7 +79,7 @@ export const AIHandler = inngest.createFunction(
 
         if (!prompts) {
           let error = new Error("Prompts not found");
-          error.name = "NoPromptsNotFound";
+          error.name = "PromptsNotFoundError";
           throw error;
         }
 
@@ -104,10 +91,10 @@ export const AIHandler = inngest.createFunction(
           throw new NonRetriableError(err.message);
         }
 
-        if (err.name === "SupabaseUserDataNotFound") {
+        if (err.name === "SupabaseUserDataNotFoundError") {
           throw new NonRetriableError(err.message);
         }
-        if (err.name === "NoPromptsNotFound") {
+        if (err.name === "PromptsNotFoundError") {
           throw new NonRetriableError(err.message);
         }
       });
@@ -122,7 +109,7 @@ export const AIHandler = inngest.createFunction(
           .from("user_tokens")
           .select("*")
           .eq("user_id", userId)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("Error fetching user tokens", error);

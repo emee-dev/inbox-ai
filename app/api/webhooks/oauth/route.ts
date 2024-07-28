@@ -1,143 +1,36 @@
-import axios from "axios";
 import { createClient } from "@/utils/supabase/server";
-import fs from "node:fs/promises";
-import { AccountData, ApiKey, clientId, clientSecret, frontend, GetZohoAccountDetails, redirectUri, scope } from "./controller";
+import axios from "axios";
 import { NextResponse } from "next/server";
-
-let api_key: ApiKey = {
-  access_token:
-    "1000.747df1fc7470309bec579f937bf3156e.185cf622e9aaf10e251d6677d2f111be",
-  refresh_token:
-    "1000.9e1fba6fee2d23f04d9e7a3b6fba6524.92126ee7f2918b91e36e7f92c5473e1c",
-  scope: "ZohoMail.messages.ALL ZohoMail.accounts.ALL",
-  api_domain: "https://www.zohoapis.com",
-  token_type: "Bearer",
-  expires_in: 3600,
-};
-
-// mailboxaddress, primaryemailaddress, zoho_zuid, accountid, firstname, lastname
-
-// let getZohoAccountDetails: AccountData = {
-//   status: {
-//     code: 200,
-//     description: "success",
-//   },
-//   data: [
-//     {
-//       country: "ng",
-//       lastLogin: 1722113564885,
-//       mxStatus: true,
-//       activeSyncEnabled: false,
-//       incomingBlocked: false,
-//       language: "en",
-//       type: "ZOHO_ACCOUNT",
-//       extraStorage: {},
-//       incomingUserName: "emee-dev@zohomail.com",
-//       emailAddress: [
-//         {
-//           isAlias: false,
-//           isPrimary: false,
-//           mailId: "emee-dev@zohomail.com",
-//           isConfirmed: true,
-//         },
-//         {
-//           isAlias: false,
-//           isPrimary: true,
-//           mailId: "emmanuelajike2000@gmail.com",
-//           isConfirmed: true,
-//         },
-//       ],
-//       mailboxStatus: "enabled",
-//       popBlocked: false,
-//       usedStorage: 210,
-//       spamcheckEnabled: true,
-//       imapAccessEnabled: false,
-//       timeZone: "Africa/Lagos",
-//       accountCreationTime: 1669930365197,
-//       zuid: 797009692,
-//       webBlocked: false,
-//       planStorage: 5,
-//       firstName: "Emmanuel",
-//       accountId: "639307000000008002",
-//       sequence: 1,
-//       mailboxAddress: "emee-dev@zohomail.com",
-//       lastPasswordReset: -1,
-//       tfaEnabled: false,
-//       iamStatus: 1,
-//       status: false,
-//       lastName: "Ajike",
-//       accountDisplayName: "emee-dev",
-//       role: "member",
-//       gender: "MALE",
-//       accountName: "zohomail",
-//       displayName: "emee-dev",
-//       isLogoExist: true,
-//       URI: "https://mail.zoho.com/api/accounts/639307000000008002",
-//       primaryEmailAddress: "emmanuelajike2000@gmail.com",
-//       enabled: true,
-//       mailboxCreationTime: 1720247909888,
-//       basicStorage: "free",
-//       lastClient: "WEB_ZM",
-//       allowedStorage: 5242880,
-//       sendMailDetails: [
-//         {
-//           sendMailId: "639307000000008004",
-//           displayName: "Emmanuel Ajike",
-//           serverName: "smtpout.mail.zoho.com",
-//           signatureId: "639307000000008030",
-//           serverPort: 25,
-//           userName: "emee-dev@zohomail.com",
-//           connectionType: "plain",
-//           mode: "mailbox",
-//           validated: false,
-//           fromAddress: "emee-dev@zohomail.com",
-//           smtpConnection: 0,
-//           validationRequired: true,
-//           validationState: 0,
-//           status: true,
-//         },
-//       ],
-//       popFetchTime: -1,
-//       address: {},
-//       planType: 0,
-//       userExpiry: -1,
-//       popAccessEnabled: false,
-//       imapBlocked: false,
-//       iamUserRole: "member",
-//       outgoingBlocked: false,
-//       policyId: {
-//         zoid: -1,
-//         "1082700000000623001": "Zoho Mail Policy",
-//       },
-//       smtpStatus: true,
-//       extraEDiscoveryStorage: {},
-//     },
-//   ],
-// };
-
-// POST http://localhost:3000/api/webhooks/oauth
-// POST https://xxzbrx9p-3000.uks1.devtunnels.ms/api/webhooks/oauth
+import {
+  AccountData,
+  ApiKey,
+  clientId,
+  clientSecret,
+  frontend,
+  GetZohoAccountDetails,
+  redirectUri,
+  scope,
+} from "./controller";
 
 export async function GET(req: Request) {
-  const supabase = createClient();
-
-  let url = new URL(req.url);
-
-  let code = url.searchParams.get("code");
-
-  if (!code || typeof code !== "string") {
-    return Response.json({ error: "Invalid request" }, { status: 400 });
-  }
-
-  const params = new URLSearchParams();
-  params.append("grant_type", "authorization_code");
-  params.append("client_id", clientId);
-  params.append("client_secret", clientSecret);
-  params.append("redirect_uri", redirectUri);
-  params.append("scope", scope);
-  params.append("code", code);
-
   try {
+    const supabase = createClient();
+
+    let request_url = new URL(req.url);
+    let code = request_url.searchParams.get("code");
+
+    if (!code || typeof code !== "string") {
+      return Response.json({ error: "Invalid request" }, { status: 404 });
+    }
+
+    const params = new URLSearchParams();
+    params.append("grant_type", "authorization_code");
+    params.append("client_id", clientId);
+    params.append("client_secret", clientSecret);
+    params.append("redirect_uri", redirectUri);
+    params.append("scope", scope);
+    params.append("code", code);
+
     const url = "https://accounts.zoho.com/oauth/v2/token?" + params.toString();
 
     let config = {
@@ -170,9 +63,6 @@ export async function GET(req: Request) {
     let tokenData: ApiKey = response.data;
     let allAccountsResponse: GetZohoAccountDetails = getAllAccountsOfAUser.data;
     let allAccounts: AccountData = allAccountsResponse.data[0];
-
-    // console.log("token response", response.data);
-    // console.log("getAllAccountsOfAUser", allAccounts);
 
     // Find the user if it exists
     const findUser = await supabase
@@ -207,12 +97,22 @@ export async function GET(req: Request) {
 
     if (newUser.error) {
       console.log(newUser.error.message);
-      throw newUser.error;
+      return Response.json(
+        {
+          message: "Internal server error, please try again later",
+        },
+        { status: 500 }
+      );
     }
 
-    if (!newUser.data || newUser.data.length === 0) {
-      console.log("Could not add newUser to database");
-      return;
+    if (!newUser.data) {
+      console.log("Could not return user data");
+      return Response.json(
+        {
+          message: "Internal server error, please try again later",
+        },
+        { status: 500 }
+      );
     }
 
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
@@ -230,17 +130,26 @@ export async function GET(req: Request) {
       .select();
 
     if (token.error) {
-      throw token.error;
+      console.log(token.error.message);
+      return Response.json(
+        {
+          message: "Internal server error, please try again later",
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.redirect(
       new URL(`${frontend}/dashboard?email=${allAccounts.mailboxAddress}`)
     );
   } catch (error: any) {
-    console.error("Error fetching tokens from Zoho", error.message);
-
     let err = handleAxiosError(error);
-    return Response.json({ message: "Error fetching tokens from Zoho", err });
+
+    console.error("Error fetching tokens from Zoho", err);
+    return Response.json(
+      { message: "Error fetching tokens from Zoho" },
+      { status: 500 }
+    );
   }
 }
 
